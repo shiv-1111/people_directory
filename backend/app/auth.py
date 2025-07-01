@@ -9,11 +9,17 @@ def hash_password(password):
 def check_password(hashed_password, password):
     return bcrypt.check_password_hash(hashed_password, password)
 
-def get_current_user(user):
+def get_current_user():
     user_id = get_jwt_identity()
     return db.session.get(Person, user_id)
 
 # to check whether user is admin, return type will be booleam
 def is_admin(user):
-    return user.role == "Admin"
+    person = Person.query.filter_by(id=user.id).first()
+    return person is not None and person.role == "admin"
 
+def check_email(email):
+    return Person.query.filter_by(email=email).first()
+
+def return_user_by_email(email):
+    return Person.query.filter_by(email=email).first()

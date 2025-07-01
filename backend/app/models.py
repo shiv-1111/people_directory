@@ -1,5 +1,5 @@
 from . import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Person(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -17,4 +17,4 @@ class Person(db.Model):
     # 'admin' or 'user'
     role = db.Column(db.String(10), default='user')
 
-    created_at = db.Column(db.DateTime, default=datetime.now(datetime.timezone.utc))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
