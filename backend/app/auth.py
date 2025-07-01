@@ -10,7 +10,7 @@ def check_password(hashed_password, password):
     return bcrypt.check_password_hash(hashed_password, password)
 
 def get_current_user(user):
-    user_id = get_jwt_identity
+    user_id = get_jwt_identity()
     return db.session.get(Person, user_id)
 
 # to check whether user is admin, return type will be booleam
