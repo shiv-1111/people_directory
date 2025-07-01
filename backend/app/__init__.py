@@ -1,3 +1,6 @@
+# Note - naming the file as __init__.py is necessary as python looks for this file in a "folder" and knows that it is a package and
+# can import things from there
+
 # importing required libraries and classes
 from flask import Flask
 # database ORM
@@ -52,6 +55,8 @@ def create_app():
 
     # importing blueprint object called api from routes.py and registering it with the flask app - somewhat similar to react components,
     # keeps the code modular and scalable
+    # in simple words, now we can define routes as @api.routes in routes file otherwise we would have to define every route
+    # @app.routes, where app object is initialized.
     from .routes import api
     app.register_blueprint(api)
 

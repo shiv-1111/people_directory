@@ -10,6 +10,11 @@ app = create_app()
 # this line of code ensures that server must only run if the script is run directly and not imported
 # pyhton built in variable "__name__", when script is run directly, __name__ == "__main__"
 
+# ignore
+# @app.route('/')
+# def home():
+#     return "<h1>HII</h1>"
+
 if __name__ == "__main__":
     # start server
     app.run(debug=True)
