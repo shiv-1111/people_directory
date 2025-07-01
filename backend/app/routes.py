@@ -5,14 +5,13 @@ from .models import Person
 from .schemas import RegisterSchema, LoginSchema
 from .auth import *
 from marshmallow import ValidationError
-import traceback
 
 # creating a flask blueprint objct for routes
 api = Blueprint('api', __name__)
 
-@api.route('/')
-def home():
-    return "<h1>Hii</h1>"
+# @api.route('/')
+# def home():
+#     return "<h1>Hii</h1>"
 
 # registration route
 @api.route('/register', methods=['POST'])
