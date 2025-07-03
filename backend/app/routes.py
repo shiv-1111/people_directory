@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required
+from flask import Blueprint, request, jsonify, make_response
+from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies
 from . import db
 from .models import Person
 from .schemas import RegisterSchema, LoginSchema
@@ -45,13 +45,17 @@ def login():
     try:
         schema = LoginSchema()
         data = schema.load(request.json)
+        print('Login api hit')
 
         person = return_user_by_email(data['email'])
         if not person or not check_password(person.password, data['password']):
             return jsonify(message='Invalid credentials!'), 401
 
         token = create_access_token(str(person.id))
-        return jsonify(access_token=token), 200
+        response = make_response(jsonify("Login successful!"))
+        set_access_cookies(response, token)
+        # return jsonify(access_token=token), 200
+        return response, 200
 
     except ValidationError as err:
         # Specific error if schema validation fails
@@ -60,6 +64,17 @@ def login():
     except Exception as e:
         # General error (optional: log it)
         return jsonify(message='An internal error occurred.'), 500
+
+# logout route
+@api.route('/logout', methods=['POST'])
+def logout():
+    try:
+        response = make_response(jsonify(message="Logged out"))
+        response.set_cookie("token", "", expires=0)
+        return response, 200
+    except Exception as e:
+        return jsonify(error="Something went wrong during logout", details=str(e)), 500
+
 
 # USER APIs
 
@@ -78,8 +93,9 @@ def get_me():
             "name": user.name,
             "email": user.email,
             "phone": user.phone,
-            "city": user.city
-        })
+            "city": user.city,
+            "role": user.role
+        }), 200
 
     except Exception as e:
         return jsonify(message="An internal server error occurred."), 500
