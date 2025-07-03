@@ -5,6 +5,7 @@ backend/venv/
 __pycache__/
 *.pyc
 
-backend/.env
+# adding env to git here as this a pet project
+# backend/.env
 
 frontend/node_modules/

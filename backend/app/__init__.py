@@ -13,6 +13,7 @@ from flask_jwt_extended import JWTManager
 from flask_marshmallow import Marshmallow
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 # importing enviroment variables from env file
 load_dotenv()
@@ -33,6 +34,13 @@ def create_app():
     # turns off feature to track changes in the models 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY")
+    
+    app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+    app.config['JWT_ACCESS_COOKIE_PATH'] = '/'
+    app.config['JWT_ACCESS_COOKIE_NAME'] = 'access_token'
+    app.config['JWT_COOKIE_SECURE'] = False  # True in production
+    app.config['JWT_COOKIE_HTTPONLY'] = True
+    app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 
     # initializing extensions with the app
     db.init_app(app)
@@ -52,6 +60,11 @@ def create_app():
         # XSS protection- only load content from source 
         response.headers['Content-Security-Policy'] = "default-src 'self'"
         return response
+    
+    
+    # enabling CORS
+    frontend_address = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    CORS(app, origins=[frontend_address], supports_credentials=True)
 
     # importing blueprint object called api from routes.py and registering it with the flask app - somewhat similar to react components,
     # keeps the code modular and scalable

@@ -1,18 +1,18 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required
+from flask import Blueprint, request, jsonify, make_response
+from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, unset_jwt_cookies
 from . import db
 from .models import Person
 from .schemas import RegisterSchema, LoginSchema
 from .auth import *
 from marshmallow import ValidationError
-import traceback
+from sqlalchemy import or_
 
 # creating a flask blueprint objct for routes
 api = Blueprint('api', __name__)
 
-@api.route('/')
-def home():
-    return "<h1>Hii</h1>"
+# @api.route('/')
+# def home():
+#     return "<h1>Hii</h1>"
 
 # registration route
 @api.route('/register', methods=['POST'])
@@ -46,13 +46,17 @@ def login():
     try:
         schema = LoginSchema()
         data = schema.load(request.json)
+        print('Login api hit')
 
         person = return_user_by_email(data['email'])
         if not person or not check_password(person.password, data['password']):
             return jsonify(message='Invalid credentials!'), 401
 
         token = create_access_token(str(person.id))
-        return jsonify(access_token=token), 200
+        response = make_response(jsonify("Login successful!"))
+        set_access_cookies(response, token)
+        # return jsonify(access_token=token), 200
+        return response, 200
 
     except ValidationError as err:
         # Specific error if schema validation fails
@@ -61,6 +65,17 @@ def login():
     except Exception as e:
         # General error (optional: log it)
         return jsonify(message='An internal error occurred.'), 500
+
+# logout route
+@api.route('/logout', methods=['POST'])
+def logout():
+    try:
+        response = make_response(jsonify(message="Logged out"))
+        unset_jwt_cookies(response)
+        return response, 200
+    except Exception as e:
+        return jsonify(error="Something went wrong during logout", details=str(e)), 500
+
 
 # USER APIs
 
@@ -79,8 +94,9 @@ def get_me():
             "name": user.name,
             "email": user.email,
             "phone": user.phone,
-            "city": user.city
-        })
+            "city": user.city,
+            "role": user.role
+        }), 200
 
     except Exception as e:
         return jsonify(message="An internal server error occurred."), 500
@@ -176,4 +192,41 @@ def handle_person_by_id(id):
         return jsonify(message="An internal error occurred while processing."), 500
 
 
-    
+# search api
+
+@api.route("/search", methods=['GET'])
+@jwt_required()
+def handleSearch():
+    try:
+        user = get_current_user()
+        if not user or user.role != "admin":
+            return jsonify("Only admin can perform this operation."), 403
+
+        query = request.args.get("q", "").strip()
+
+        if len(query) < 2:
+            return jsonify("Query length is too short, must be greater than two!"), 400
+
+        result = Person.query.filter(
+            or_(
+                Person.name.ilike(f"%{query}%"),
+                Person.city.ilike(f"%{query}%"),
+                Person.email.ilike(f"%{query}%"),
+                Person.phone.ilike(f"%{query}%")
+            )
+        ).all()
+        # return jsonify(result)
+        
+        return jsonify([{
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "phone": u.phone,
+            "city": u.city,
+            "age": u.age,
+            "role": u.role,
+            "photo_url": u.photo_url
+        } for u in result]), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Internal error", "details": str(e)}), 500
