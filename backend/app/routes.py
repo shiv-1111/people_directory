@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies
+from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, unset_jwt_cookies
 from . import db
 from .models import Person
 from .schemas import RegisterSchema, LoginSchema
 from .auth import *
 from marshmallow import ValidationError
+from sqlalchemy import or_
 
 # creating a flask blueprint objct for routes
 api = Blueprint('api', __name__)
@@ -70,7 +71,7 @@ def login():
 def logout():
     try:
         response = make_response(jsonify(message="Logged out"))
-        response.set_cookie("token", "", expires=0)
+        unset_jwt_cookies(response)
         return response, 200
     except Exception as e:
         return jsonify(error="Something went wrong during logout", details=str(e)), 500
@@ -191,4 +192,41 @@ def handle_person_by_id(id):
         return jsonify(message="An internal error occurred while processing."), 500
 
 
-    
+# search api
+
+@api.route("/search", methods=['GET'])
+@jwt_required()
+def handleSearch():
+    try:
+        user = get_current_user()
+        if not user or user.role != "admin":
+            return jsonify("Only admin can perform this operation."), 403
+
+        query = request.args.get("q", "").strip()
+
+        if len(query) < 2:
+            return jsonify("Query length is too short, must be greater than two!"), 400
+
+        result = Person.query.filter(
+            or_(
+                Person.name.ilike(f"%{query}%"),
+                Person.city.ilike(f"%{query}%"),
+                Person.email.ilike(f"%{query}%"),
+                Person.phone.ilike(f"%{query}%")
+            )
+        ).all()
+        # return jsonify(result)
+        
+        return jsonify([{
+            "id": u.id,
+            "name": u.name,
+            "email": u.email,
+            "phone": u.phone,
+            "city": u.city,
+            "age": u.age,
+            "role": u.role,
+            "photo_url": u.photo_url
+        } for u in result]), 200
+        
+    except Exception as e:
+        return jsonify({"error": "Internal error", "details": str(e)}), 500

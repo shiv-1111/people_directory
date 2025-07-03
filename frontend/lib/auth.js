@@ -1,3 +1,4 @@
+import { getCookie } from "@/utils/cookies";
 const API_BASE = "http://localhost:5000";
 
 export async function login(email, password) {
@@ -48,9 +49,13 @@ export async function fetchProfile() {
 
 export async function updateProfile(data) {
   try {
+    const csrf = getCookie("csrf_access_token");
     const res = await fetch(`${API_BASE}/my-detail`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrf,
+      },
       credentials: "include",
       body: JSON.stringify(data),
     });
@@ -111,10 +116,15 @@ export async function updateUserById(id, data) {
 }
 
 export async function deleteUserById(id) {
+  const csrf = getCookie("csrf_access_token");
   try {
     const res = await fetch(`${API_BASE}/users/${id}`, {
       method: "DELETE",
       credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrf,
+      },
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result?.message || "Failed to delete user");
@@ -176,5 +186,20 @@ export async function registerUser(data) {
   } catch (err) {
     console.error("Registration failed!", err);
     throw err;
+  }
+}
+
+export async function logoutUser() {
+  try {
+    const res = await fetch("http://localhost:5000/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      throw new Error("Logout failed");
+    }
+  } catch (error) {
+    throw error;
   }
 }
